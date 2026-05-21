@@ -72,7 +72,7 @@ class UserController extends Controller
         $age = date_diff(date_create($validated['birth_date']), date_create('now'))->y;
 
         User::create([
-            'profile_picture'=> $validated['add_user_profile_picture'],
+            'profile_picture'=> $validated['add_user_profile_picture'] ?? null,
             'first_name'=> $validated['first_name'],
             'middle_name'=> $validated['middle_name'],
             'last_name'=> $validated['last_name'],

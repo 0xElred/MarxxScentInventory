@@ -6,6 +6,7 @@ import GenderService from "../../../services/GenderService";
 import { useParams } from "react-router-dom";
 import Spinner from "../../../components/Spinner/Spinner";
 import type { GenderFieldErrors } from "../../../interfaces/GenderInterface";
+import { requiredField } from "../../../utils/formValidation";
 
 interface EditGenderFormProps {
     onGenderUpdated: (message: string) => void
@@ -38,9 +39,15 @@ const EditGenderForm: FC<EditGenderFormProps> = ({onGenderUpdated}) => {
     };
 
 const handleUpdateGender  = async (e: FormEvent) => {
-    try {
-        e.preventDefault()
+    e.preventDefault()
 
+    const genderError = requiredField(gender)
+    if (genderError) {
+        setErrors({ gender: genderError })
+        return
+    }
+
+    try {
         setLoadingUpdate(true)
 
         const res = await GenderService.updateGender(gender_id!, {gender})
@@ -81,7 +88,7 @@ useEffect( () => {
             </div>
         ) : (
 
-            <form onSubmit={handleUpdateGender} >
+            <form onSubmit={handleUpdateGender} noValidate>
                 <div>
                     <FloatingLabelInput label="Gender" type="text" name="gender" value={gender} onChange={(e) => setGender(e.target.value)} errors={errors.gender} required autoFocus />
                 </div>

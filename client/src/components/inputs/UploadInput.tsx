@@ -80,11 +80,9 @@ const UploadInput: FC<UploadInputProps> = ({label, name, value, onChange, onRemo
             </div>
         </div>
         {errors && errors.length > 0 && (
-            <div className="mb-2">
-                <span className="text-red-600 text-xs">
-                    {errors[0]}
-                </span>
-            </div>
+            <p id={`${name}-error`} className="mt-1 mb-2 text-sm text-red-600" role="alert">
+                {errors[0]}
+            </p>
         )}
         {preview && (
             <div className="flex justify-center mb-4">

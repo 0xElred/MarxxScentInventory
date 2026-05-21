@@ -8,11 +8,12 @@ import CloseButton from "../../../components/buttons/CloseButton"
 import GenderService from "../../../services/GenderService";
 import UserService from "../../../services/UserService";
 import type { UserFieldErrors } from "../../../interfaces/UserInterface"
+import { requiredField } from "../../../utils/formValidation"
 import type { GenderColumns } from "../../../interfaces/GenderInterface"
 import UploadInput from "../../../components/inputs/UploadInput"
 
 interface AddUserFormModalProps {
-    onUserAdded: (message: string) => void
+    onUserAdded: (message: string, failed?: boolean) => void
     isOpen: boolean;
     onClose: () => void;
     refreshKey: () => void;
@@ -38,9 +39,34 @@ const AddUserFormModal: FC<AddUserFormModalProps> = ({ onUserAdded, isOpen, onCl
 
     const [errors, setErrors] = useState<UserFieldErrors>({});
 
+    const validateAddUser = (): UserFieldErrors => {
+        const validationErrors: UserFieldErrors = {}
+        const fields: [keyof UserFieldErrors, string][] = [
+            ["first_name", firstName],
+            ["last_name", lastName],
+            ["gender", gender],
+            ["birth_date", birthDate],
+            ["username", username],
+            ["password", password],
+            ["password_confirmation", passwordConfirmation],
+        ]
+        for (const [key, value] of fields) {
+            const fieldError = requiredField(value)
+            if (fieldError) validationErrors[key] = fieldError
+        }
+        return validationErrors
+    }
+
     const handleStoreUser = async (e: FormEvent)=> {
+        e.preventDefault()
+
+        const validationErrors = validateAddUser()
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            return
+        }
+
         try {
-            e.preventDefault()
             setLoadingStore(true)
             setErrors({})
 
@@ -62,7 +88,7 @@ const AddUserFormModal: FC<AddUserFormModalProps> = ({ onUserAdded, isOpen, onCl
 
             const res = await UserService.storeUser(formData);
 
-            if (res.status === 200) {
+            if (res.status >= 200 && res.status < 300) {
                 setAddUserProfilePicture(null);
                 setFirstName('');
                 setMiddleName('');
@@ -74,20 +100,23 @@ const AddUserFormModal: FC<AddUserFormModalProps> = ({ onUserAdded, isOpen, onCl
                 setPassword('');
                 setPasswordConfirmation('');
                 setErrors({});
-                
-                onUserAdded(res.data.message);
-                refreshKey();
-                onClose();
 
+                onClose();
+                onUserAdded(res.data?.message ?? 'User Successfully Saved');
+                refreshKey();
             } else {
                 console.error('Unexpected Status error occured during adding user: ', res.status)
             }
 
         } catch (error: any) {
-            if (error.response && error.response.status === 422) {
+            if (error.response?.status === 422) {
                 setErrors(error.response.data.errors)
             } else {
-                console.log('Unexpected server error occured during adding user: ', error)
+                const message =
+                    error.response?.data?.message ??
+                    'Something went wrong while saving the user. Please try again.';
+                onUserAdded(message, true);
+                console.error('Unexpected server error occured during adding user: ', error)
             }
         }
         finally {
@@ -132,7 +161,7 @@ useEffect(() => {
     return (
         <>
             <Modal isOpen={isOpen} onClose={onClose} showCloseButton className="bg-white rounded">
-                <form onSubmit={handleStoreUser}>
+                <form onSubmit={handleStoreUser} noValidate>
                     <h1 className="text-2-xl border-b boarder-gray-100 p-4 font-semibold mb-4"> Add User Form</h1>
                     <div className="mb-4">
                         <UploadInput label= "Profile Picture" name="add_user_profile_picture" value={addUserProfilePicture} onChange={setAddUserProfilePicture} errors={errors.add_user_profile_picture} />

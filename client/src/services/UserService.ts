@@ -11,7 +11,7 @@ const UserService = {
     },
     storeUser: async(data:any) => {
         try {
-            const response = AxiosInstance.post('/user/storeUser', data)
+            const response = await AxiosInstance.post('/user/storeUser', data)
             return response;
         } catch (error) {
             throw error;

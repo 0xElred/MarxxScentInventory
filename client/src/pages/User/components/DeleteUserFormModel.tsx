@@ -36,7 +36,7 @@ const DeleteUserFormModel: FC<DeleteUserFormModalProps> = ({
         const middle = user.middle_name ?? user.midlle_name ?? "";
         let name = `${user.last_name}, ${user.first_name}`;
         if (middle) name += `, ${middle.charAt(0)}.`;
-        if (user.suffix_name) name += user.suffix_name;
+        if (user.suffix_name) name += ` ${user.suffix_name}`;
         setSummary(name);
     }, [user]);
 

@@ -17,7 +17,7 @@ const UserList: FC<UserListProps> = ({ onAddUser, onEditUser, onDeleteUser, refr
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [users, setUsers] = useState<UserColumns[]>([]);
     const [usersTableCurrentPage, setUsersTableCurrentPage] = useState(1);
-    const [usersTableLastPage, setUsersTableLastPage] = useState(1);
+    const [, setUsersTableLastPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
 
     const [search, setSearch] = useState("");
@@ -73,7 +73,7 @@ const UserList: FC<UserListProps> = ({ onAddUser, onEditUser, onDeleteUser, refr
             fullName = `${user.last_name}, ${user.first_name}`;
         }
         if (user.suffix_name) {
-            fullName += `${user.suffix_name}`;
+            fullName += ` ${user.suffix_name}`;
         }
         return fullName;
     };
@@ -157,7 +157,7 @@ const UserList: FC<UserListProps> = ({ onAddUser, onEditUser, onDeleteUser, refr
                             </TableRow>
                         </TableHeader>
                         <TableBody className="divide-y divide-gray-100 text-gray-600 text-sm ">
-                            {users.length ?? 0 > 0 ? (
+                            {(users.length ?? 0) > 0 ? (
                                 users.map((user, index) =>(
                                     <TableRow className="hover:bg-gray-100" key={user.user_id}>
                                         <TableCell className="px-4 py-3 text-center">

@@ -7,6 +7,7 @@ import { useEffect, useState, type FC, type FormEvent } from 'react'
 import GenderService from '../../../services/GenderService'
 import UserService from '../../../services/UserService'
 import type { UserColumns, UserFieldErrors } from '../../../interfaces/UserInterface'
+import { requiredField } from '../../../utils/formValidation'
 import type { GenderColumns } from '../../../interfaces/GenderInterface'
 import UploadInput from '../../../components/inputs/UploadInput'
 
@@ -40,10 +41,32 @@ const EditUserFormModal: FC<EditUserFormModalprops> = ({
     const [username, setUsername] = useState("");
     const [errors, setErrors] = useState<UserFieldErrors>({});
 
-    const handleUpdateUser = async (e: FormEvent) => {
-        try{
-          e.preventDefault()
+    const validateEditUser = (): UserFieldErrors => {
+        const validationErrors: UserFieldErrors = {}
+        const fields: [keyof UserFieldErrors, string][] = [
+            ['first_name', firstName],
+            ['last_name', lastName],
+            ['gender', gender],
+            ['birth_date', birthDate],
+            ['username', username],
+        ]
+        for (const [key, value] of fields) {
+            const fieldError = requiredField(value)
+            if (fieldError) validationErrors[key] = fieldError
+        }
+        return validationErrors
+    }
 
+    const handleUpdateUser = async (e: FormEvent) => {
+        e.preventDefault()
+
+        const validationErrors = validateEditUser()
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors)
+            return
+        }
+
+        try{
           setLoadingUpdate(true)
           setErrors({})
 
@@ -148,9 +171,7 @@ const EditUserFormModal: FC<EditUserFormModalprops> = ({
     return (
         <>
             <Modal isOpen={isOpen} onClose={onClose} showCloseButton className="bg-white rounded">
-                <form 
-                    onSubmit={handleUpdateUser}
-                >
+                <form onSubmit={handleUpdateUser} noValidate>
                     <h1 className="text-2-xl border-b boarder-gray-100 p-4 font-semibold mb-4">Edit User Form</h1>
                     <div className="mb-4"></div>
                         <UploadInput label="Profile Picture" name= "edit_user_profile_picture" value={editUserProfilePicture} onChange={setEditUserProfilePicture} onRemoveExistingImageUrl={() => setExistingProfilePicture(null)} existingImageUrl={existingProfilePicture} errors={errors.edit_user_profile_picture} />

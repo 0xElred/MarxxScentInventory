@@ -3,6 +3,7 @@ import SubmitButton from "../../../components/buttons/SubmitButton"
 import FloatingLabelInput from "../../../components/inputs/FloatingLabelInput"
 import GenderService from "../../../services/GenderService"
 import type { GenderFieldErrors } from "../../../interfaces/GenderInterface"
+import { requiredField } from "../../../utils/formValidation"
 
 interface AddGenderFormProps {
     onGenderAdded: (message: string) => void
@@ -15,8 +16,15 @@ const AddGenderForm: FC<AddGenderFormProps> = ({onGenderAdded, refreshKey}) => {
     const [errors, setErrors] = useState<GenderFieldErrors>({});
 
     const handleStoreGender = async (e: FormEvent) => {
+        e.preventDefault()
+
+        const genderError = requiredField(gender)
+        if (genderError) {
+            setErrors({ gender: genderError })
+            return
+        }
+
         try {
-            e.preventDefault()
             setLoadingStore(true)
             
             const res = await GenderService.storeGender({gender})
@@ -43,7 +51,7 @@ const AddGenderForm: FC<AddGenderFormProps> = ({onGenderAdded, refreshKey}) => {
     };
     return (
         <>
-            <form onSubmit={handleStoreGender}>
+            <form onSubmit={handleStoreGender} noValidate>
                 <div className="mb-4">
                     <FloatingLabelInput
                         label="Gender"
