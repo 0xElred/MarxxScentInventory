@@ -3,103 +3,88 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Gender;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function loadUsers(Request $request) {
+    private function profileUrl(?string $photo): ?string
+    {
+        return $photo ? url('storage/public/img/user/profile_picture/' . $photo) : null;
+    }
 
-        $search = $request -> input('search');
+    public function loadUsers(Request $request)
+    {
+        $search = $request->input('search');
 
-        $users = User::with(['gender'])
-        ->leftJoin('tbl_genders', 'tbl_users.gender_id', '=', 'tbl_genders.gender_id')
-        ->where('tbl_users.is_deleted', false)
-        ->orderBy('tbl_users.last_name', 'asc')
-        ->orderBy('tbl_users.first_name', 'asc')
-        ->orderBy('tbl_users.middle_name', 'asc')
-        ->orderBy('tbl_users.suffix_name', 'asc');
+        $users = User::with('role')
+            ->where('is_deleted', false)
+            ->orderBy('name');
 
-        if($search) {
-            $users -> where(function ($user) use ($search) {
-                $user->where('tbl_users.first_name', 'like', "%{$search}%")
-                    ->orWhere('tbl_users.middle_name','like', "%{$search}%")
-                    ->orWhere('tbl_users.last_name','like', "%{$search}%")
-                    ->orWhere('tbl_users.suffix_name','like', "%{$search}%")
-                    ->orWhere('tbl_genders.gender','like', "%{$search}%");
+        if ($search) {
+            $users->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%")
+                    ->orWhereHas('role', fn ($r) => $r->where('name', 'like', "%{$search}%"));
             });
         }
 
-        $users = $users -> paginate(15);
+        $users = $users->paginate(15);
 
-        $users ->getCollection()->transform(function($user) {
-            $user->profile_picture = $user->profile_picture ? url('storage/public/img/user/profile_picture/' . $user->profile_picture) : null;
+        $users->getCollection()->transform(function ($user) {
+            $user->profile_picture = $this->profileUrl($user->profile_picture);
 
             return $user;
         });
 
-        return response()->json([
-            'users'=> $users
-        ], 200);
+        return response()->json(['users' => $users], 200);
     }
 
-    public function storeUser(Request $request) {
+    public function storeUser(Request $request)
+    {
         $validated = $request->validate([
-            'add_user_profile_picture' => ['nullable', 'image', 'mimes:png,jpg,jpeg'],
-            'first_name'=> ['required', 'max:55'],
-            'middle_name'=> ['nullable', 'max:55'],
-            'last_name'=> ['required', 'max:55'],
-            'suffix_name'=> ['nullable', 'max:55'],
-            'gender'=>['required'],
-            'birth_date'=>['required', 'date'],
-            'username'=>['required','min:6', 'max:55', Rule::unique('tbl_users', 'username')],
-            'password'=>['required','min:6', 'max:55', 'confirmed'],
-            'password_confirmation'=>['required','min:6', 'max:55']
+            'profile_picture' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'name' => ['required', 'max:120'],
+            'username' => ['required', 'min:6', 'max:55', Rule::unique('tbl_users', 'username')],
+            'role' => ['required', 'exists:tbl_roles,role_id'],
+            'password' => ['required', 'min:6', 'max:55', 'confirmed'],
+            'password_confirmation' => ['required', 'min:6', 'max:55'],
         ]);
 
-        if($request->hasFile('add_user_profile_picture')) {
-            $filenameWithExtension = $request->file('add_user_profile_picture');
-            $filename = pathinfo($filenameWithExtension->getClientOriginalName(), PATHINFO_FILENAME);
-            $extension = $filenameWithExtension->getClientOriginalExtension();
-            $filenameToStore = sha1($filename . '_' . time() . '.' . $extension);
-            $filenameWithExtension -> storeAs('public/img/user/profile_picture', $filenameToStore);
-            $validated['add_user_profile_picture'] = $filenameToStore;
+        $filenameToStore = null;
+        if ($request->hasFile('profile_picture')) {
+            $file = $request->file('profile_picture');
+            $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $extension = $file->getClientOriginalExtension();
+            $filenameToStore = sha1($filename . '_' . time()) . '.' . $extension;
+            $file->storeAs('public/img/user/profile_picture', $filenameToStore);
         }
 
-        $age = date_diff(date_create($validated['birth_date']), date_create('now'))->y;
-
-        User::create([
-            'profile_picture'=> $validated['add_user_profile_picture'] ?? null,
-            'first_name'=> $validated['first_name'],
-            'middle_name'=> $validated['middle_name'],
-            'last_name'=> $validated['last_name'],
-            'suffix_name'=> $validated['suffix_name'],
-            'gender_id'=> $validated['gender'],
-            'birth_date'=> $validated['birth_date'],
-            'age'=> $age,
-            'username'=> $validated['username'],
-            'password'=> $validated['password']
+        $user = User::create([
+            'profile_picture' => $filenameToStore,
+            'name' => $validated['name'],
+            'role_id' => $validated['role'],
+            'username' => $validated['username'],
+            'password' => $validated['password'],
         ]);
 
-        return response()->json([
-            'message' => 'User Successfully Saved'
-        ], 200);
+        ActivityLogService::recordFromRequest($request, "added user \"{$user->name}\"");
+
+        return response()->json(['message' => 'User Successfully Saved'], 200);
     }
 
     public function updateUser(Request $request, User $user)
     {
         $validated = $request->validate([
-            'edit_user_profile_picture' => ['nullable', 'image', 'mimes:png,jpg,jpeg'],
-            'first_name'=> ['required', 'max:55'],
-            'middle_name'=> ['nullable', 'max:55'],
-            'last_name'=> ['required', 'max:55'],
-            'suffix_name'=> ['nullable', 'max:55'],
-            'gender'=>['required'],
-            'birth_date'=>['required', 'date'],
-            'username'=>['required','min:6', 'max:55', Rule::unique('tbl_users', 'username')->ignore($user)],
+            'profile_picture' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
+            'name' => ['required', 'max:120'],
+            'username' => ['required', 'min:6', 'max:55', Rule::unique('tbl_users', 'username')->ignore($user)],
+            'role' => ['required', 'exists:tbl_roles,role_id'],
+            'password' => ['nullable', 'min:6', 'max:55', 'confirmed'],
+            'password_confirmation' => ['nullable', 'min:6', 'max:55'],
         ]);
 
         $profilePicture = $user->profile_picture;
@@ -109,37 +94,34 @@ class UserController extends Controller
                 Storage::delete('public/img/user/profile_picture/' . $profilePicture);
             }
             $profilePicture = null;
-        } elseif ($request->hasFile('edit_user_profile_picture')) {
+        } elseif ($request->hasFile('profile_picture')) {
             if ($profilePicture) {
                 Storage::delete('public/img/user/profile_picture/' . $profilePicture);
             }
-            $file = $request->file('edit_user_profile_picture');
+            $file = $request->file('profile_picture');
             $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $extension = $file->getClientOriginalExtension();
-            $filenameToStore = sha1($filename . '_' . time() . '.' . $extension);
-            $file->storeAs('public/img/user/profile_picture', $filenameToStore);
-            $profilePicture = $filenameToStore;
+            $profilePicture = sha1($filename . '_' . time()) . '.' . $extension;
+            $file->storeAs('public/img/user/profile_picture', $profilePicture);
         }
 
-        $age = date_diff(date_create($validated['birth_date']), date_create('now'))->y;
-
-        $user->update([
+        $data = [
             'profile_picture' => $profilePicture,
-            'first_name'=> $validated['first_name'],
-            'middle_name'=> $validated['middle_name'],
-            'last_name'=> $validated['last_name'],
-            'suffix_name'=> $validated['suffix_name'],
-            'gender_id'=> $validated['gender'],
-            'birth_date'=> $validated['birth_date'],
-            'age'=> $age,
-            'username'=> $validated['username'],
-        ]);
+            'name' => $validated['name'],
+            'role_id' => $validated['role'],
+            'username' => $validated['username'],
+        ];
 
-        $user->refresh();
-        $user->load('gender');
-        $user->profile_picture = $user->profile_picture
-            ? url('storage/public/img/user/profile_picture/' . $user->profile_picture)
-            : null; 
+        if (! empty($validated['password'])) {
+            $data['password'] = $validated['password'];
+        }
+
+        $user->update($data);
+
+        ActivityLogService::recordFromRequest($request, "updated user \"{$user->name}\"");
+
+        $user->refresh()->load('role');
+        $user->profile_picture = $this->profileUrl($user->profile_picture);
 
         return response()->json([
             'message' => 'User Successfully Updated',
@@ -147,15 +129,12 @@ class UserController extends Controller
         ], 200);
     }
 
-    public function destroyUser(User $user)
+    public function destroyUser(Request $request, User $user)
     {
-        $user->update([
-            'is_deleted' => true,
-        ]);
+        $user->update(['is_deleted' => true]);
 
-        return response()->json([
-            'message' => 'User Successfully Deleted.',
-        ], 200);
+        ActivityLogService::recordFromRequest($request, "deleted user \"{$user->name}\"");
+
+        return response()->json(['message' => 'User Successfully Deleted.'], 200);
     }
-
 }

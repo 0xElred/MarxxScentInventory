@@ -1,53 +1,119 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../hooks/useAuth";
+import sidebarLogo from "../assets/img/sidebarlogo.png";
+
+const navItems = [
+    { path: "/dashboard", label: "Dashboard" },
+    { path: "/products", label: "Products" },
+    { path: "/users", label: "Users" },
+    { path: "/orders", label: "Orders" },
+];
 
 const AppSidebar = () => {
     const { isOpen, toggleSidebar } = useSidebar();
+    const { user, logout } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
 
-    const sidebarItems = [
-        {
-            path: '/genders',
-            text: 'Gender',
-        },
-        {
-            path: '/users',
-            text: 'Users',
-        },
-    ];
+    const handleLogout = async () => {
+        try {
+            await logout();
+        } catch {
+            /* ignore */
+        }
+        localStorage.removeItem("token");
+        navigate("/");
+    };
+
+    const initials = user?.name
+        ? user.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+        : "?";
 
     return (
         <>
             {isOpen && (
-                <div className="fixed inset-0 z-30 bg-black/20 sm:hidden"
+                <div
+                    className="fixed inset-0 z-30 bg-black/60 sm:hidden"
                     onClick={toggleSidebar}
                 />
             )}
             <aside
-                id="top-bar-sidebar"
-                className={`fixed top-0 left-0 z-40 h-full w-64 transition-transform ${isOpen ? "translate-x-0" : "-translate-x-full"} sm:translate-x-0`}
-                aria-label="Sidebar"
+                className={`fixed top-0 left-0 z-40 flex h-full w-64 flex-col bg-black border-r border-gray-900 transition-transform ${
+                    isOpen ? "translate-x-0" : "-translate-x-full"
+                } sm:translate-x-0`}
             >
-                <div className="h-full px-3 py-4 overflow-y-auto bg-gray-800 border-e border-gray-700 text-gray-100">
-                    <a href="https://flowbite.com/" className="flex items-center ps-2.5 mb-5">
-                        <img src="https://flowbite.com/docs/images/logo.svg" className="h-6 me-3" alt="Flowbite Logo" />
-                        <span className="self-center text-lg text-white font-semibold whitespace-nowrap">Flowbite</span>
-                    </a>
-                    <ul className="space-y-2 font-medium">
-                        {sidebarItems.map((sidebarItem, index) => (
-                            <li key={index}>
-                                <Link
-                                    to={sidebarItem.path}
-                                    className="flex items-center px-2 py-1.5 text-gray-200 rounded-base hover:bg-gray-700 hover:text-white group">
-                                    <span className="ms-3">{sidebarItem.text}</span>
-                                </Link>
-                            </li>
+                <div className="flex min-h-[72px] items-center justify-center border-b border-gray-900 px-4 py-5">
+                    <img
+                        src={sidebarLogo}
+                        alt="Marxx Scent"
+                        className="max-h-14 w-full object-contain"
+                    />
+                </div>
 
-                        ))}
-                    </ul>
+                <div className="border-b border-gray-900 px-4 py-4">
+                    <div className="flex items-center gap-3">
+                        {user?.profile_picture ? (
+                            <img
+                                src={user.profile_picture}
+                                alt={user.name}
+                                className="h-10 w-10 rounded-full object-cover"
+                            />
+                        ) : (
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-800 text-sm font-semibold text-white">
+                                {initials}
+                            </div>
+                        )}
+                        <div>
+                            <p className="text-sm font-medium text-white">
+                                Hello, {user?.name ?? "Guest"}
+                            </p>
+                            <p className="text-xs capitalize text-gray-400">
+                                {user?.role?.name ?? "—"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav className="flex-1 space-y-1 px-3 py-4">
+                    {navItems.map((item) => {
+                        const active = location.pathname.startsWith(item.path);
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => {
+                                    if (window.innerWidth < 640) toggleSidebar();
+                                }}
+                                className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                                    active
+                                        ? "bg-gray-100 text-black"
+                                        : "text-gray-300 hover:bg-gray-900 hover:text-white"
+                                }`}
+                            >
+                                {item.label}
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                <div className="border-t border-gray-900 p-4">
+                    <button
+                        type="button"
+                        onClick={() => void handleLogout()}
+                        className="w-full rounded-lg border border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-200 transition hover:bg-gray-900 hover:text-white"
+                    >
+                        Logout
+                    </button>
                 </div>
             </aside>
         </>
-    )
-}
+    );
+};
 
 export default AppSidebar;

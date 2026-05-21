@@ -1,39 +1,38 @@
-
 import AppSidebar from "./AppSidebar";
-import AppHeader from "./AppHeader";
 import { Outlet } from "react-router-dom";
-import { SidebarProvider } from "../context/SidebarContext";
-import { HeaderProvider } from "../context/HeaderContext";
-const LayoutContent = () => {
+import { SidebarProvider, useSidebar } from "../context/SidebarContext";
+
+const MobileBar = () => {
+    const { toggleSidebar } = useSidebar();
     return (
-        <>
-            <div>
-                <AppSidebar />
-            </div>
-            <div>
-                <AppHeader />
-            </div>
-            <div className="pt-20 pl-0 sm:pl-64 min-h-screen">
-                <div className="px-4 pb-6 pt-2 sm:px-6 sm:pb-8 sm:pt-4">
-                    <Outlet />
-                </div>
-            </div>
-        </>
-    )
-}
+        <div className="mb-4 flex items-center sm:hidden">
+            <button
+                type="button"
+                onClick={toggleSidebar}
+                className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-gray-200"
+            >
+                Menu
+            </button>
+        </div>
+    );
+};
 
-const AppLayout = () => {
-    return (
-        <>
-            <HeaderProvider>
-                <SidebarProvider>
-                    <LayoutContent />
-                </SidebarProvider>
+const LayoutContent = () => (
+    <div className="min-h-screen bg-[#0f1f3d]">
+        <AppSidebar />
+        <main className="min-h-screen bg-[#0f1f3d] pl-0 sm:pl-64">
+            <div className="px-4 py-6 sm:px-8 sm:py-8">
+                <MobileBar />
+                <Outlet />
+            </div>
+        </main>
+    </div>
+);
 
-            </HeaderProvider>
-
-        </>
-    )
-}
+const AppLayout = () => (
+    <SidebarProvider>
+        <LayoutContent />
+    </SidebarProvider>
+);
 
 export default AppLayout;

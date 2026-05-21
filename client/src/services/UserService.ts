@@ -1,45 +1,18 @@
 import AxiosInstance from "./AxiosInstance";
 
 const UserService = {
-    loadUsers: async(page:number, search: string) => {
-        try {
-            const response = await AxiosInstance.get(search ? `/user/loadUsers?page=${page}&search=${search}` : `/user/loadUsers?page=${page}`);
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    loadUsers: async (page = 1, search = "") => {
+        const q = search ? `&search=${encodeURIComponent(search)}` : "";
+        return AxiosInstance.get(`/user/loadUsers?page=${page}${q}`);
     },
-    storeUser: async(data:any) => {
-        try {
-            const response = await AxiosInstance.post('/user/storeUser', data)
-            return response;
-        } catch (error) {
-            throw error;
-        }
+    storeUser: async (data: FormData) =>
+        AxiosInstance.post("/user/storeUser", data),
+    updateUser: async (userId: number, data: FormData) => {
+        data.append("_method", "PUT");
+        return AxiosInstance.post(`/user/updateUser/${userId}`, data);
     },
-    updateUser: async (userId: string | number, data: FormData | Record<string, unknown>) => {
-        try {
-            // PHP does not populate multipart fields for real HTTP PUT requests, so Laravel
-            // sees an empty body and every "required" rule fails. POST + _method=PUT is parsed
-            // correctly and still hits Route::put via Laravel's method override.
-            if (data instanceof FormData) {
-                data.append('_method', 'PUT');
-                const response = await AxiosInstance.post(`/user/updateUser/${userId}`, data);
-                return response;
-            }
-            const response = await AxiosInstance.put(`/user/updateUser/${userId}`, data);
-            return response;
-        } catch (error) {
-            throw error;
-        }
-    },
-    destroyUser: async (userId: string | number) => {
-        try{
-            const response = await AxiosInstance.put(`/user/destroyUser/${userId}`)
-            return response;
-        } catch(error) {
-          throw error;
-        }
-    }
+    destroyUser: async (userId: number) =>
+        AxiosInstance.put(`/user/destroyUser/${userId}`),
 };
+
 export default UserService;

@@ -22,7 +22,15 @@ const UploadInput: FC<UploadInputProps> = ({label, name, value, onChange, onRemo
         }
     }, [onChange]);
 
-    const{getRootProps, getInputProps, isDragActive} = useDropzone({onDrop, accept: {'image/png': [], 'image/jpg': [], 'image/jpeg': []}, multiple: false});
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            "image/png": [".png"],
+            "image/jpeg": [".jpg", ".jpeg"],
+            "image/webp": [".webp"],
+        },
+        multiple: false,
+    });
 
     useEffect(() => {
         if(value) {
@@ -44,7 +52,7 @@ const UploadInput: FC<UploadInputProps> = ({label, name, value, onChange, onRemo
         </div> 
         <div className={`transition border border-gray-300 border-dashed cursor-pointer rounder lg hover:border-blue-900 ${errors ? 'mb-0' : 'mb-4'}`}>
             <div {...getRootProps()} className={`rounded-lg borded-dashed border-gray-300 p-7 lg:p-10 ${isDragActive ? "border-blue-600 bg-gray-100" : "border-gray-300 bg-gray-50"}`}>
-                <input {...getInputProps()} name={name} id={name} />
+                <input {...getInputProps({ name })} />
                 <div className="flex flex-col items-center m-0">
                     {preview ? (<img src={preview} alt="Profile Picture Preview" className="object-cover rounded-full w-46.25 h-46.25" />) : (
                         <>

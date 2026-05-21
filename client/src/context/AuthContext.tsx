@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FC, type ReactNode } from "react
 import type { UserDetails } from "../interfaces/AuthInterface";
 import AuthService from "../services/AuthService";
 import { AuthContext, type AuthContextType } from "./auth-context";
+import { AUTH_DISABLED } from "../config/auth";
 
 export { AuthContext, type AuthContextType };
 
@@ -46,6 +47,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }, []);
 
     const checkAuth = useCallback(async () => {
+        if (AUTH_DISABLED) {
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         const token = localStorage.getItem("token");
 
