@@ -114,7 +114,7 @@ const DashboardPage = () => {
                             <>
                                 <div className="overflow-x-auto">
                                     <Table>
-                                        <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-xs uppercase text-gray-400">
+                                        <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                             <TableRow>
                                                 <TableCell isHeader className="px-5 py-3 text-left">
                                                     User

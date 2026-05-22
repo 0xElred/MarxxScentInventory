@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../compon
 import Spinner from "../../components/Spinner/Spinner";
 import OrderFormModal from "./components/OrderFormModal";
 import { parsePaginated } from "../../utils/parsePaginated";
+import { formatPeso } from "../../utils/formatPeso";
+import { getOrderTotal } from "../../utils/orderTotals";
 
 const statusStyles: Record<OrderStatus, string> = {
     pending: "bg-yellow-900/40 text-yellow-300 border-yellow-700",
@@ -113,14 +115,15 @@ const OrdersPage = () => {
                 ) : (
                     <>
                         <Table>
-                            <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-xs uppercase text-gray-400">
+                            <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                 <TableRow>
                                     <TableCell isHeader className="px-5 py-3">Order ID</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Products</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Receiver Name</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Address</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Status</TableCell>
-                                    <TableCell isHeader className="px-5 py-3 text-right">Actions</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">Price</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">Actions</TableCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-700 text-sm text-gray-200">
@@ -155,7 +158,10 @@ const OrdersPage = () => {
                                                 </span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="px-5 py-3 text-right whitespace-nowrap">
+                                        <TableCell className="px-5 py-3 font-medium whitespace-nowrap">
+                                            {formatPeso(getOrderTotal(o))}
+                                        </TableCell>
+                                        <TableCell className="px-5 py-3 whitespace-nowrap">
                                             <button
                                                 type="button"
                                                 onClick={() => setEditOrder(o)}
@@ -177,7 +183,7 @@ const OrdersPage = () => {
                                 ))}
                                 {orders.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="px-5 py-8 text-center text-gray-500">No orders found.</TableCell>
+                                        <TableCell colSpan={7} className="px-5 py-8 text-center text-gray-500">No orders found.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

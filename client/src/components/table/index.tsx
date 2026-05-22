@@ -48,8 +48,13 @@ const TableRow: FC<TableRowProps> = ({ children, className }) => {
     </tr>
 };
 const TableCell: FC<TableCellProps> = ({ children, colSpan, isHeader, className }) => {
-    const Celltag = isHeader ? 'th' : 'td'
-    return <Celltag colSpan={ colSpan } className={className}> {children} </Celltag>
+    const Celltag = isHeader ? 'th' : 'td';
+    const alignClass = isHeader ? 'text-left' : '';
+    return (
+        <Celltag colSpan={colSpan} className={[alignClass, className].filter(Boolean).join(' ')}>
+            {children}
+        </Celltag>
+    );
 };
 
 export { Table, TableHeader, TableBody, TableRow, TableCell };

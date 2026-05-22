@@ -96,12 +96,12 @@ const UsersPage = () => {
                 ) : (
                     <>
                         <Table>
-                            <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-xs uppercase text-gray-400">
+                            <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                 <TableRow>
                                     <TableCell isHeader className="px-5 py-3">Picture</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Name</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Role</TableCell>
-                                    <TableCell isHeader className="px-5 py-3 text-right">Actions</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">Actions</TableCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-700 text-sm text-gray-200">
@@ -122,7 +122,7 @@ const UsersPage = () => {
                                                 {u.role?.name ?? "—"}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="px-5 py-3 text-right">
+                                        <TableCell className="px-5 py-3">
                                             <button type="button" className="mr-4 text-gray-300 hover:text-white" onClick={() => setEditUser(u)}>Edit</button>
                                             <button type="button" className="text-red-400 hover:text-red-300" onClick={() => setDeleteUser(u)}>Delete</button>
                                         </TableCell>

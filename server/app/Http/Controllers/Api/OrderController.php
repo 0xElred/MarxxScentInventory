@@ -180,6 +180,16 @@ class OrderController extends Controller
 
         $orders = $orders->paginate(15);
 
+        $orders->getCollection()->transform(function ($order) {
+            $order->total_amount = $order->items->sum(
+                fn ($item) => $item->product
+                    ? $item->product->unitPriceForVariant($item->variant_type ?? Product::VARIANT_BOTTLE) * $item->quantity
+                    : (float) $item->unit_price * $item->quantity
+            );
+
+            return $order;
+        });
+
         return response()->json(['orders' => $orders], 200);
     }
 
