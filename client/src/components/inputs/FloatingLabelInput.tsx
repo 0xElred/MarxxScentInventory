@@ -2,7 +2,7 @@ import type { ChangeEvent, FC, ReactNode } from "react";
 
 interface FloatingLabelInputProps {
     label: string;
-    type: "text" | "date" | "password";
+    type: "text" | "date" | "password" | "number";
     name: string;
     value?: string | any;
     onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -11,6 +11,8 @@ interface FloatingLabelInputProps {
     newInputClassName?: string;
     inputClassName?: string;
     required?: boolean;
+    min?: number;
+    max?: number;
     autoFocus?: boolean;
     disabled?: boolean;
     readonly?: boolean;
@@ -29,6 +31,8 @@ const FloatingLabelInput: FC<FloatingLabelInputProps> = ({
     newInputClassName,
     inputClassName,
     required,
+    min,
+    max,
     autoFocus,
     disabled,
     readonly,
@@ -52,6 +56,8 @@ const FloatingLabelInput: FC<FloatingLabelInputProps> = ({
                     autoFocus={autoFocus}
                     disabled={disabled}
                     readOnly={readonly}
+                    min={min}
+                    max={max}
                     aria-invalid={hasError}
                     aria-describedby={hasError ? `${name}-error` : undefined}
                 />

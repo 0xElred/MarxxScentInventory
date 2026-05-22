@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
@@ -50,12 +52,114 @@ class OrderController extends Controller
         }
     }
 
+    private function resolveOrderLines(array $items): array
+    {
+        $lines = [];
+        $total = 0;
+
+        foreach ($items as $item) {
+            $product = Product::where('product_id', $item['product_id'])
+                ->where('is_deleted', false)
+                ->firstOrFail();
+
+            $variant = $item['variant_type'];
+            $quantity = (int) $item['quantity'];
+            $available = $product->stockForVariant($variant);
+
+            if ($quantity > $available) {
+                abort(422, "Insufficient {$product->variantLabel($variant)} stock for {$product->name}. Available: {$available}");
+            }
+
+            $unitPrice = $product->unitPriceForVariant($variant);
+            $lineTotal = $unitPrice * $quantity;
+            $total += $lineTotal;
+
+            $lines[] = [
+                'product_id' => $product->product_id,
+                'variant_type' => $variant,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+            ];
+        }
+
+        return ['lines' => $lines, 'total' => $total];
+    }
+
+    private function syncOrderItems(Order $order, array $lines): void
+    {
+        $order->items()->delete();
+
+        foreach ($lines as $line) {
+            $order->items()->create($line);
+        }
+    }
+
+    private function deductStockForOrder(Order $order): void
+    {
+        if ($order->stock_deducted) {
+            return;
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->load('items.product');
+
+            foreach ($order->items as $item) {
+                $product = Product::where('product_id', $item->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $variant = $item->variant_type ?? Product::VARIANT_BOTTLE;
+                $available = $product?->stockForVariant($variant) ?? 0;
+
+                if (! $product || $available < $item->quantity) {
+                    $name = $product?->name ?? 'Product';
+                    $label = $product?->variantLabel($variant) ?? 'stock';
+                    abort(422, "Insufficient {$label} stock for {$name}. Available: {$available}");
+                }
+
+                $product->decrementVariantStock($variant, $item->quantity);
+            }
+
+            $order->update(['stock_deducted' => true]);
+        });
+    }
+
+    private function restoreStockForOrder(Order $order): void
+    {
+        if (! $order->stock_deducted) {
+            return;
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->load('items');
+
+            foreach ($order->items as $item) {
+                $variant = $item->variant_type ?? Product::VARIANT_BOTTLE;
+                Product::where('product_id', $item->product_id)
+                    ->first()
+                    ?->incrementVariantStock($variant, $item->quantity);
+            }
+
+            $order->update(['stock_deducted' => false]);
+        });
+    }
+
+    private function itemValidationRules(): array
+    {
+        return [
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['required', 'exists:tbl_products,product_id'],
+            'items.*.variant_type' => ['required', Rule::in(Product::validVariants())],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+        ];
+    }
+
     public function loadOrders(Request $request)
     {
         $status = $request->input('status');
         $search = $request->input('search');
 
-        $orders = Order::with('product')
+        $orders = Order::with(['items.product'])
             ->where('is_deleted', false)
             ->orderByDesc('created_at');
 
@@ -68,7 +172,7 @@ class OrderController extends Controller
                 $q->where('order_code', 'like', "%{$search}%")
                     ->orWhere('receiver_name', 'like', "%{$search}%")
                     ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhereHas('product', function ($product) use ($search) {
+                    ->orWhereHas('items.product', function ($product) use ($search) {
                         $product->where('name', 'like', "%{$search}%");
                     });
             });
@@ -83,40 +187,46 @@ class OrderController extends Controller
     {
         $products = Product::where('is_deleted', false)
             ->orderBy('name')
-            ->get(['product_id', 'name', 'price']);
+            ->get(['product_id', 'name', 'price', 'bottles', 'stock_5ml', 'stock_10ml']);
 
         return response()->json(['products' => $products], 200);
     }
 
     public function storeOrder(Request $request)
     {
-        $validated = $request->validate([
-            'product_id' => ['required', 'exists:tbl_products,product_id'],
-            'receiver_name' => ['required', 'max:120'],
-            'address' => ['required', 'string'],
-        ]);
+        $validated = $request->validate(array_merge(
+            [
+                'receiver_name' => ['required', 'max:120'],
+                'address' => ['required', 'string'],
+            ],
+            $this->itemValidationRules()
+        ));
 
-        $product = Product::where('product_id', $validated['product_id'])
-            ->where('is_deleted', false)
-            ->firstOrFail();
+        $resolved = $this->resolveOrderLines($validated['items']);
 
-        $order = Order::create([
-            'order_code' => $this->generateOrderCode(),
-            'product_id' => $product->product_id,
-            'receiver_name' => $validated['receiver_name'],
-            'address' => $validated['address'],
-            'status' => 'pending',
-            'total_amount' => $product->price,
-        ]);
+        $order = DB::transaction(function () use ($validated, $resolved, $request) {
+            $order = Order::create([
+                'order_code' => $this->generateOrderCode(),
+                'receiver_name' => $validated['receiver_name'],
+                'address' => $validated['address'],
+                'status' => 'pending',
+                'total_amount' => $resolved['total'],
+                'stock_deducted' => false,
+            ]);
 
-        ActivityLogService::recordFromRequest(
-            $request,
-            "created order {$order->order_code} for {$validated['receiver_name']}"
-        );
+            $this->syncOrderItems($order, $resolved['lines']);
+
+            ActivityLogService::recordFromRequest(
+                $request,
+                "created order {$order->order_code} for {$validated['receiver_name']}"
+            );
+
+            return $order;
+        });
 
         return response()->json([
             'message' => 'Order Successfully Saved',
-            'order' => $order->load('product'),
+            'order' => $order->load(['items.product']),
         ], 200);
     }
 
@@ -124,28 +234,31 @@ class OrderController extends Controller
     {
         $this->ensurePending($order);
 
-        $validated = $request->validate([
-            'product_id' => ['required', 'exists:tbl_products,product_id'],
-            'receiver_name' => ['required', 'max:120'],
-            'address' => ['required', 'string'],
-        ]);
+        $validated = $request->validate(array_merge(
+            [
+                'receiver_name' => ['required', 'max:120'],
+                'address' => ['required', 'string'],
+            ],
+            $this->itemValidationRules()
+        ));
 
-        $product = Product::where('product_id', $validated['product_id'])
-            ->where('is_deleted', false)
-            ->firstOrFail();
+        $resolved = $this->resolveOrderLines($validated['items']);
 
-        $order->update([
-            'product_id' => $product->product_id,
-            'receiver_name' => $validated['receiver_name'],
-            'address' => $validated['address'],
-            'total_amount' => $product->price,
-        ]);
+        DB::transaction(function () use ($order, $validated, $resolved, $request) {
+            $order->update([
+                'receiver_name' => $validated['receiver_name'],
+                'address' => $validated['address'],
+                'total_amount' => $resolved['total'],
+            ]);
 
-        ActivityLogService::recordFromRequest($request, "updated order {$order->order_code}");
+            $this->syncOrderItems($order, $resolved['lines']);
+
+            ActivityLogService::recordFromRequest($request, "updated order {$order->order_code}");
+        });
 
         return response()->json([
             'message' => 'Order Successfully Updated',
-            'order' => $order->load('product'),
+            'order' => $order->load(['items.product']),
         ], 200);
     }
 
@@ -157,16 +270,26 @@ class OrderController extends Controller
 
         $this->validateStatusTransition($order, $validated['status']);
 
-        $order->update(['status' => $validated['status']]);
+        DB::transaction(function () use ($order, $validated, $request) {
+            if (in_array($validated['status'], ['shipped', 'delivered'], true)) {
+                $this->deductStockForOrder($order);
+            }
 
-        ActivityLogService::recordFromRequest(
-            $request,
-            "marked order {$order->order_code} as {$validated['status']}"
-        );
+            if ($validated['status'] === 'canceled') {
+                $this->restoreStockForOrder($order);
+            }
+
+            $order->update(['status' => $validated['status']]);
+
+            ActivityLogService::recordFromRequest(
+                $request,
+                "marked order {$order->order_code} as {$validated['status']}"
+            );
+        });
 
         return response()->json([
             'message' => 'Order status updated.',
-            'order' => $order->load('product'),
+            'order' => $order->load(['items.product']),
         ], 200);
     }
 

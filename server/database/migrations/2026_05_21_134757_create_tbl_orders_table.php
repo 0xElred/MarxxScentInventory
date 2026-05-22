@@ -11,19 +11,13 @@ return new class extends Migration
         Schema::create('tbl_orders', function (Blueprint $table) {
             $table->id('order_id');
             $table->string('order_code', 20)->unique();
-            $table->unsignedBigInteger('product_id');
             $table->string('receiver_name', 120);
             $table->text('address');
             $table->enum('status', ['pending', 'shipped', 'delivered', 'canceled'])->default('pending');
+            $table->tinyInteger('stock_deducted')->default(false);
             $table->decimal('total_amount', 12, 2);
             $table->tinyInteger('is_deleted')->default(false);
             $table->timestamps();
-
-            $table->foreign('product_id')
-                ->references('product_id')
-                ->on('tbl_products')
-                ->onUpdate('cascade')
-                ->onDelete('restrict');
         });
     }
 

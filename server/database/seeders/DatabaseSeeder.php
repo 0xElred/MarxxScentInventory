@@ -50,6 +50,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Sauvage'],
             [
                 'price' => 1111.00,
+                'bottles' => 50,
+                'stock_5ml' => 20,
+                'stock_10ml' => 15,
                 'description' => 'Dior Sauvage Eau de Parfum',
                 'is_deleted' => false,
             ]
@@ -59,19 +62,29 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Bleu de Chanel'],
             [
                 'price' => 899.00,
+                'bottles' => 30,
+                'stock_5ml' => 10,
+                'stock_10ml' => 8,
                 'description' => 'Chanel Bleu de Chanel Eau de Parfum',
                 'is_deleted' => false,
             ]
         );
 
         if (! Order::where('order_code', '20260521-001')->exists()) {
-            Order::create([
+            $order = Order::create([
                 'order_code' => '20260521-001',
-                'product_id' => $sauvage->product_id,
                 'receiver_name' => 'Legmabols',
                 'address' => 'Vigo, Spain',
                 'status' => 'pending',
                 'total_amount' => $sauvage->price,
+                'stock_deducted' => false,
+            ]);
+
+            $order->items()->create([
+                'product_id' => $sauvage->product_id,
+                'variant_type' => 'bottle',
+                'quantity' => 1,
+                'unit_price' => $sauvage->price,
             ]);
         }
 

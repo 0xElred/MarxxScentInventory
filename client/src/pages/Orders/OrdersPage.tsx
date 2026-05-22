@@ -7,6 +7,7 @@ import { useToastMessage } from "../../hooks/useToastMessage";
 import { usePaginatedList } from "../../hooks/usePaginatedList";
 import OrderService from "../../services/OrderService";
 import type { Order, OrderStatus } from "../../interfaces/OrderInterface";
+import { VARIANT_LABELS } from "../../utils/productVariants";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/table";
 import Spinner from "../../components/Spinner/Spinner";
 import OrderFormModal from "./components/OrderFormModal";
@@ -61,9 +62,9 @@ const OrdersPage = () => {
                 showToastMessage(res.data.message, false);
                 refresh();
             }
-        } catch (e) {
-            console.error(e);
-            showToastMessage("Could not update order status.", true);
+        } catch (e: unknown) {
+            const axiosErr = e as { response?: { data?: { message?: string } } };
+            showToastMessage(axiosErr.response?.data?.message ?? "Could not update order status.", true);
         }
     };
 
@@ -126,7 +127,15 @@ const OrdersPage = () => {
                                 {orders.map((o) => (
                                     <TableRow key={o.order_id} className="hover:bg-slate-800/40">
                                         <TableCell className="px-5 py-3 font-mono text-xs">{o.order_code}</TableCell>
-                                        <TableCell className="px-5 py-3">{o.product?.name ?? "—"}</TableCell>
+                                        <TableCell className="px-5 py-3">
+                                            {o.items?.length
+                                                ? o.items.map((item) => (
+                                                      <span key={item.order_item_id} className="block">
+                                                          {item.product?.name ?? "—"} ({VARIANT_LABELS[item.variant_type] ?? item.variant_type}) × {item.quantity}
+                                                      </span>
+                                                  ))
+                                                : "—"}
+                                        </TableCell>
                                         <TableCell className="px-5 py-3">{o.receiver_name}</TableCell>
                                         <TableCell className="max-w-[200px] truncate px-5 py-3 text-gray-400">{o.address}</TableCell>
                                         <TableCell className="px-5 py-3">

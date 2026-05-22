@@ -12,6 +12,9 @@ return new class extends Migration
             $table->id('product_id');
             $table->string('name', 120);
             $table->decimal('price', 12, 2);
+            $table->unsignedInteger('bottles')->default(0);
+            $table->unsignedInteger('stock_5ml')->default(0);
+            $table->unsignedInteger('stock_10ml')->default(0);
             $table->text('description')->nullable();
             $table->string('photo', 255)->nullable();
             $table->tinyInteger('is_deleted')->default(false);

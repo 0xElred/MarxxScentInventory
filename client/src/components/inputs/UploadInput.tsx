@@ -51,10 +51,16 @@ const UploadInput: FC<UploadInputProps> = ({label, name, value, onChange, onRemo
         </label>
         </div> 
         <div className={`transition border border-gray-300 border-dashed cursor-pointer rounder lg hover:border-blue-900 ${errors ? 'mb-0' : 'mb-4'}`}>
-            <div {...getRootProps()} className={`rounded-lg borded-dashed border-gray-300 p-7 lg:p-10 ${isDragActive ? "border-blue-600 bg-gray-100" : "border-gray-300 bg-gray-50"}`}>
+            <div {...getRootProps()} className={`rounded-lg borded-dashed border-gray-300 overflow-hidden ${preview ? "p-0" : "p-7 lg:p-10"} ${isDragActive ? "border-blue-600 bg-gray-100" : "border-gray-300 bg-gray-50"}`}>
                 <input {...getInputProps({ name })} />
-                <div className="flex flex-col items-center m-0">
-                    {preview ? (<img src={preview} alt="Profile Picture Preview" className="object-cover rounded-full w-46.25 h-46.25" />) : (
+                <div className={`flex flex-col m-0 ${preview ? "w-full" : "items-center"}`}>
+                    {preview ? (
+                        <img
+                            src={preview}
+                            alt="Upload preview"
+                            className="block h-48 w-full object-cover sm:h-56 lg:h-64"
+                        />
+                    ) : (
                         <>
                         <div className="mb-5.5 flex justify-center">
                             <div className="flex w-17 h-17 items-center justify-center rounded-full bg-gray-200 text-gray-600">
@@ -83,7 +89,7 @@ const UploadInput: FC<UploadInputProps> = ({label, name, value, onChange, onRemo
                             Browse File
                         </span>
                         </>
-                    ) }
+                    )}
                 </div>
             </div>
         </div>

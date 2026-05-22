@@ -14,13 +14,30 @@ interface Props {
     product?: Product | null;
 }
 
+const inputClass = "block w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2.5 text-sm text-white";
+const labelClass = "text-gray-400";
+
 const ProductFormModal: FC<Props> = ({ isOpen, onClose, onSaved, product }) => {
     const [name, setName] = useState("");
     const [price, setPrice] = useState("");
+    const [bottles, setBottles] = useState("");
+    const [stock5ml, setStock5ml] = useState("");
+    const [stock10ml, setStock10ml] = useState("");
     const [description, setDescription] = useState("");
     const [photo, setPhoto] = useState<File | null>(null);
     const [errors, setErrors] = useState<ProductFieldErrors>({});
     const [submitting, setSubmitting] = useState(false);
+
+    const clearAddForm = () => {
+        setName("");
+        setPrice("");
+        setBottles("");
+        setStock5ml("");
+        setStock10ml("");
+        setDescription("");
+        setPhoto(null);
+        setErrors({});
+    };
 
     useEffect(() => {
         if (!isOpen) return;
@@ -28,19 +45,16 @@ const ProductFormModal: FC<Props> = ({ isOpen, onClose, onSaved, product }) => {
         if (product) {
             setName(product.name);
             setPrice(String(product.price));
+            setBottles(String(product.bottles));
+            setStock5ml(String(product.stock_5ml));
+            setStock10ml(String(product.stock_10ml));
             setDescription(product.description ?? "");
             setPhoto(null);
+        } else {
+            clearAddForm();
         }
         setErrors({});
     }, [product, isOpen]);
-
-    const clearAddForm = () => {
-        setName("");
-        setPrice("");
-        setDescription("");
-        setPhoto(null);
-        setErrors({});
-    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -49,6 +63,9 @@ const ProductFormModal: FC<Props> = ({ isOpen, onClose, onSaved, product }) => {
         const fd = new FormData();
         fd.append("name", name);
         fd.append("price", price);
+        fd.append("bottles", bottles);
+        fd.append("stock_5ml", stock5ml);
+        fd.append("stock_10ml", stock10ml);
         fd.append("description", description);
         if (photo) appendFile(fd, "photo", photo);
 
@@ -77,10 +94,20 @@ const ProductFormModal: FC<Props> = ({ isOpen, onClose, onSaved, product }) => {
                 {product ? "Edit Product" : "Add New Product"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-                <FloatingLabelInput label="Name" name="name" type="text" value={name} onChange={(e) => setName(e.target.value)} errors={errors.name} required newInputClassName="block w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2.5 text-sm text-white" newLabelClassName="text-gray-400" />
-                <FloatingLabelInput label="Price" name="price" type="text" value={price} onChange={(e) => setPrice(e.target.value)} errors={errors.price} required newInputClassName="block w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2.5 text-sm text-white" newLabelClassName="text-gray-400" />
-                <FloatingLabelInput label="Description" name="description" type="text" value={description} onChange={(e) => setDescription(e.target.value)} errors={errors.description} newInputClassName="block w-full rounded-lg border border-gray-700 bg-[#0a0a0a] px-3 py-2.5 text-sm text-white" newLabelClassName="text-gray-400" />
-                <UploadInput label={product ? "Photo (optional)" : "Photo"} name="photo" value={photo} onChange={setPhoto} errors={errors.photo} />
+                <FloatingLabelInput label="Name" name="name" type="text" value={name} onChange={(e) => setName(e.target.value)} errors={errors.name} required newInputClassName={inputClass} newLabelClassName={labelClass} />
+                <FloatingLabelInput label="Price" name="price" type="text" value={price} onChange={(e) => setPrice(e.target.value)} errors={errors.price} required newInputClassName={inputClass} newLabelClassName={labelClass} />
+
+                <div>
+                    <p className="mb-2 text-sm font-medium text-gray-300">Inventory</p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <FloatingLabelInput label="Bottles" name="bottles" type="number" value={bottles} onChange={(e) => setBottles(e.target.value)} errors={errors.bottles} required min={0} newInputClassName={inputClass} newLabelClassName={labelClass} />
+                        <FloatingLabelInput label="5ML" name="stock_5ml" type="number" value={stock5ml} onChange={(e) => setStock5ml(e.target.value)} errors={errors.stock_5ml} required min={0} newInputClassName={inputClass} newLabelClassName={labelClass} />
+                        <FloatingLabelInput label="10ML" name="stock_10ml" type="number" value={stock10ml} onChange={(e) => setStock10ml(e.target.value)} errors={errors.stock_10ml} required min={0} newInputClassName={inputClass} newLabelClassName={labelClass} />
+                    </div>
+                </div>
+
+                <FloatingLabelInput label="Description" name="description" type="text" value={description} onChange={(e) => setDescription(e.target.value)} errors={errors.description} newInputClassName={inputClass} newLabelClassName={labelClass} />
+                <UploadInput label={product ? "Photo (optional)" : "Photo"} name="photo" value={photo} onChange={setPhoto} existingImageUrl={product?.photo ?? null} errors={errors.photo} />
                 <SubmitButton loading={submitting} label={product ? "Update" : "Save"} />
             </form>
         </Modal>

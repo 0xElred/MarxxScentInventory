@@ -105,6 +105,9 @@ const ProductsPage = () => {
                                     <TableCell isHeader className="px-5 py-3">Photo</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Product Name</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Price</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">Bottles</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">5ML</TableCell>
+                                    <TableCell isHeader className="px-5 py-3">10ML</TableCell>
                                     <TableCell isHeader className="px-5 py-3">Description</TableCell>
                                     <TableCell isHeader className="px-5 py-3 text-right">Actions</TableCell>
                                 </TableRow>
@@ -121,6 +124,9 @@ const ProductsPage = () => {
                                         </TableCell>
                                         <TableCell className="px-5 py-3 font-medium">{p.name}</TableCell>
                                         <TableCell className="px-5 py-3">{formatPeso(p.price)}</TableCell>
+                                        <TableCell className="px-5 py-3">{p.bottles}</TableCell>
+                                        <TableCell className="px-5 py-3">{p.stock_5ml}</TableCell>
+                                        <TableCell className="px-5 py-3">{p.stock_10ml}</TableCell>
                                         <TableCell className="max-w-xs truncate px-5 py-3 text-gray-400">
                                             {p.description || "—"}
                                         </TableCell>
@@ -144,7 +150,7 @@ const ProductsPage = () => {
                                 ))}
                                 {products.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="px-5 py-8 text-center text-gray-500">
+                                        <TableCell colSpan={8} className="px-5 py-8 text-center text-gray-500">
                                             No products found.
                                         </TableCell>
                                     </TableRow>

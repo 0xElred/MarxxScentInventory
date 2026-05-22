@@ -46,6 +46,9 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'max:120'],
             'price' => ['required', 'numeric', 'min:0'],
+            'bottles' => ['required', 'integer', 'min:0'],
+            'stock_5ml' => ['required', 'integer', 'min:0'],
+            'stock_10ml' => ['required', 'integer', 'min:0'],
             'description' => ['nullable', 'string'],
             'photo' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
         ]);
@@ -62,6 +65,9 @@ class ProductController extends Controller
         $product = Product::create([
             'name' => $validated['name'],
             'price' => $validated['price'],
+            'bottles' => $validated['bottles'],
+            'stock_5ml' => $validated['stock_5ml'],
+            'stock_10ml' => $validated['stock_10ml'],
             'description' => $validated['description'] ?? null,
             'photo' => $filenameToStore,
         ]);
@@ -79,6 +85,9 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'max:120'],
             'price' => ['required', 'numeric', 'min:0'],
+            'bottles' => ['required', 'integer', 'min:0'],
+            'stock_5ml' => ['required', 'integer', 'min:0'],
+            'stock_10ml' => ['required', 'integer', 'min:0'],
             'description' => ['nullable', 'string'],
             'photo' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:10240'],
         ]);
@@ -99,6 +108,9 @@ class ProductController extends Controller
         $product->update([
             'name' => $validated['name'],
             'price' => $validated['price'],
+            'bottles' => $validated['bottles'],
+            'stock_5ml' => $validated['stock_5ml'],
+            'stock_10ml' => $validated['stock_10ml'],
             'description' => $validated['description'] ?? null,
             'photo' => $photo,
         ]);
