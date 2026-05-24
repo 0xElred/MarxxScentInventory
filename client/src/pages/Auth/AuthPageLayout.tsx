@@ -16,7 +16,7 @@ const AuthPageLayout: FC<AuthPageLayoutProps> = ({ children }) => (
                 <img
                     src={loginLogo}
                     alt="Marxx Scent"
-                    className="w-full max-w-sm object-contain"
+                    className="w-full max-w-[382px] object-contain"
                 />
             </div>
             <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-lg">

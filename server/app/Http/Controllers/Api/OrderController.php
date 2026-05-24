@@ -87,10 +87,19 @@ class OrderController extends Controller
 
     private function syncOrderItems(Order $order, array $lines): void
     {
+        $order->update(['order_item_id' => null, 'product_id' => null]);
         $order->items()->delete();
 
         foreach ($lines as $line) {
             $order->items()->create($line);
+        }
+
+        $firstItem = $order->items()->orderBy('order_item_id')->first();
+        if ($firstItem) {
+            $order->update([
+                'order_item_id' => $firstItem->order_item_id,
+                'product_id' => $firstItem->product_id,
+            ]);
         }
     }
 
@@ -178,7 +187,7 @@ class OrderController extends Controller
             });
         }
 
-        $orders = $orders->paginate(15);
+        $orders = $orders->paginate(5);
 
         $orders->getCollection()->transform(function ($order) {
             $order->total_amount = $order->items->sum(

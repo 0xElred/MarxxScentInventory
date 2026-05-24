@@ -21,7 +21,7 @@ class ProductController extends Controller
         $search = $request->input('search');
 
         $products = Product::where('is_deleted', false)
-            ->orderBy('name');
+            ->orderByDesc('created_at');
 
         if ($search) {
             $products->where(function ($q) use ($search) {
@@ -30,7 +30,7 @@ class ProductController extends Controller
             });
         }
 
-        $products = $products->paginate(15);
+        $products = $products->paginate(5);
 
         $products->getCollection()->transform(function ($product) {
             $product->photo = $this->photoUrl($product->photo);

@@ -22,7 +22,7 @@ class UserController extends Controller
 
         $users = User::with('role')
             ->where('is_deleted', false)
-            ->orderBy('name');
+            ->orderByDesc('created_at');
 
         if ($search) {
             $users->where(function ($q) use ($search) {
@@ -32,7 +32,7 @@ class UserController extends Controller
             });
         }
 
-        $users = $users->paginate(15);
+        $users = $users->paginate(5);
 
         $users->getCollection()->transform(function ($user) {
             $user->profile_picture = $this->profileUrl($user->profile_picture);

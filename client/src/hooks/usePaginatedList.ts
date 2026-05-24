@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
 import type { PaginatedResponse } from "../interfaces/PaginationInterface";
 
@@ -20,32 +20,51 @@ export function usePaginatedList<T>(
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
+    const prevDebouncedSearch = useRef(debouncedSearch);
 
     const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const result = await fetchPage(page, debouncedSearch);
-            setItems(result.data);
-            setCurrentPage(result.current_page);
-            setLastPage(result.last_page);
-            setTotal(result.total);
-        } catch (e) {
-            console.error(e);
-            setItems([]);
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        let cancelled = false;
+        const searchChanged = prevDebouncedSearch.current !== debouncedSearch;
+        prevDebouncedSearch.current = debouncedSearch;
+
+        const pageToFetch = searchChanged ? 1 : page;
+        if (searchChanged && page !== 1) {
+            setPage(1);
         }
-    }, [fetchPage, page, debouncedSearch]);
 
-    useEffect(() => {
-        setPage(1);
-    }, [debouncedSearch]);
+        async function run() {
+            setLoading(true);
+            try {
+                const result = await fetchPage(pageToFetch, debouncedSearch);
+                if (cancelled) return;
 
-    useEffect(() => {
-        void load();
-    }, [load, reloadKey]);
+                setItems(result.data);
+                setCurrentPage(result.current_page);
+                setLastPage(result.last_page);
+                setTotal(result.total);
+
+                if (pageToFetch > result.last_page && result.last_page > 0) {
+                    setPage(result.last_page);
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    console.error(e);
+                    setItems([]);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        void run();
+        return () => {
+            cancelled = true;
+        };
+    }, [fetchPage, page, debouncedSearch, reloadKey]);
 
     return {
         items,

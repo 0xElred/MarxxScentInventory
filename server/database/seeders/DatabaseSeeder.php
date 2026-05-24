@@ -80,11 +80,16 @@ class DatabaseSeeder extends Seeder
                 'stock_deducted' => false,
             ]);
 
-            $order->items()->create([
+            $item = $order->items()->create([
                 'product_id' => $sauvage->product_id,
                 'variant_type' => 'bottle',
                 'quantity' => 1,
                 'unit_price' => $sauvage->price,
+            ]);
+
+            $order->update([
+                'order_item_id' => $item->order_item_id,
+                'product_id' => $item->product_id,
             ]);
         }
 

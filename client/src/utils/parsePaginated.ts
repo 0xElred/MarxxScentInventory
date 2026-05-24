@@ -6,7 +6,7 @@ export function parsePaginated<T>(resData: Record<string, unknown>, key: string)
         data: paginator.data ?? [],
         current_page: paginator.current_page ?? 1,
         last_page: paginator.last_page ?? 1,
-        per_page: paginator.per_page ?? 15,
+        per_page: paginator.per_page ?? 5,
         total: paginator.total ?? 0,
     };
 }
