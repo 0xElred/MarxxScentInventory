@@ -54,6 +54,7 @@ const OrdersPage = () => {
         loading,
         setPage,
         refresh,
+        refreshFromStart,
     } = usePaginatedList(fetchOrders);
 
     const handleStatusChange = async (order: Order, newStatus: OrderStatus) => {
@@ -87,7 +88,7 @@ const OrdersPage = () => {
     return (
         <>
             <ToastMessage message={message} isVisible={isVisible} onClose={closeToastMessage} />
-            <OrderFormModal isOpen={addOpen} onClose={() => setAddOpen(false)} onSaved={(m) => { showToastMessage(m, false); refresh(); }} />
+            <OrderFormModal isOpen={addOpen} onClose={() => setAddOpen(false)} onSaved={(m) => { showToastMessage(m, false); refreshFromStart(); }} />
             <OrderFormModal
                 order={editOrder && canEditDetails(editOrder.status) ? editOrder : null}
                 isOpen={!!editOrder && canEditDetails(editOrder.status)}

@@ -21,23 +21,38 @@ export function usePaginatedList<T>(
     const [loading, setLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
     const prevDebouncedSearch = useRef(debouncedSearch);
+    const resetSearchOnNextFetch = useRef(false);
 
     const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
+
+    /** Reload list from page 1 with no search filter (e.g. after creating a row). */
+    const refreshFromStart = useCallback(() => {
+        resetSearchOnNextFetch.current = true;
+        setSearch("");
+        setPage(1);
+        setReloadKey((k) => k + 1);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
         const searchChanged = prevDebouncedSearch.current !== debouncedSearch;
         prevDebouncedSearch.current = debouncedSearch;
 
-        const pageToFetch = searchChanged ? 1 : page;
-        if (searchChanged && page !== 1) {
+        const pageToFetch = searchChanged || resetSearchOnNextFetch.current ? 1 : page;
+        if ((searchChanged || resetSearchOnNextFetch.current) && page !== 1) {
             setPage(1);
+        }
+
+        const searchQuery = resetSearchOnNextFetch.current ? "" : debouncedSearch;
+        if (resetSearchOnNextFetch.current) {
+            resetSearchOnNextFetch.current = false;
+            prevDebouncedSearch.current = "";
         }
 
         async function run() {
             setLoading(true);
             try {
-                const result = await fetchPage(pageToFetch, debouncedSearch);
+                const result = await fetchPage(pageToFetch, searchQuery);
                 if (cancelled) return;
 
                 setItems(result.data);
@@ -76,5 +91,6 @@ export function usePaginatedList<T>(
         loading,
         setPage,
         refresh,
+        refreshFromStart,
     };
 }
