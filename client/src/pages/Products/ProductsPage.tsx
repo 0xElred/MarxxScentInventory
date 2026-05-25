@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import PageHeader from "../../components/layout/PageHeader";
 import TableSearchBar from "../../components/layout/TableSearchBar";
+import TableScrollContainer from "../../components/layout/TableScrollContainer";
 import Pagination from "../../components/layout/Pagination";
 import ToastMessage from "../../components/ToastMessage/ToastMessage";
 import { useToastMessage } from "../../hooks/useToastMessage";
@@ -99,38 +100,39 @@ const ProductsPage = () => {
                     </div>
                 ) : (
                     <>
+                        <TableScrollContainer>
                         <Table>
                             <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                 <TableRow>
-                                    <TableCell isHeader className="px-5 py-3">Photo</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Product Name</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Price</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Bottles</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">5ML</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">10ML</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Description</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Actions</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Photo</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Product Name</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Price</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Bottles</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">5ML</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">10ML</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Description</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Actions</TableCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-700 text-sm text-gray-200">
                                 {products.map((p) => (
                                     <TableRow key={p.product_id} className="hover:bg-slate-800/40">
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             {p.photo ? (
                                                 <img src={p.photo} alt={p.name} className="h-10 w-10 rounded object-cover" />
                                             ) : (
                                                 <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-800 text-xs">—</div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="px-5 py-3 font-medium">{p.name}</TableCell>
-                                        <TableCell className="px-5 py-3">{formatPeso(p.price)}</TableCell>
-                                        <TableCell className="px-5 py-3">{p.bottles}</TableCell>
-                                        <TableCell className="px-5 py-3">{p.stock_5ml}</TableCell>
-                                        <TableCell className="px-5 py-3">{p.stock_10ml}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3 font-medium">{p.name}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">{formatPeso(p.price)}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">{p.bottles}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">{p.stock_5ml}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">{p.stock_10ml}</TableCell>
                                         <TableCell className="max-w-xs truncate px-5 py-3 text-gray-400">
                                             {p.description || "—"}
                                         </TableCell>
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             <button
                                                 type="button"
                                                 className="mr-4 text-gray-300 hover:text-white"
@@ -157,6 +159,7 @@ const ProductsPage = () => {
                                 )}
                             </TableBody>
                         </Table>
+                        </TableScrollContainer>
                         <Pagination
                             currentPage={page}
                             lastPage={lastPage}

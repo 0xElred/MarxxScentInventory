@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import PageHeader from "../../components/layout/PageHeader";
 import TableSearchBar from "../../components/layout/TableSearchBar";
+import TableScrollContainer from "../../components/layout/TableScrollContainer";
 import Pagination from "../../components/layout/Pagination";
 import ToastMessage from "../../components/ToastMessage/ToastMessage";
 import { useToastMessage } from "../../hooks/useToastMessage";
@@ -114,23 +115,24 @@ const OrdersPage = () => {
                     <div className="flex justify-center py-16"><Spinner size="lg" /></div>
                 ) : (
                     <>
+                        <TableScrollContainer>
                         <Table>
                             <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                 <TableRow>
-                                    <TableCell isHeader className="px-5 py-3">Order ID</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Products</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Receiver Name</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Address</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Status</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Price</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Actions</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Order ID</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Products</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Receiver Name</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Address</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Status</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Price</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Actions</TableCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-700 text-sm text-gray-200">
                                 {orders.map((o) => (
                                     <TableRow key={o.order_id} className="hover:bg-slate-800/40">
-                                        <TableCell className="px-5 py-3 font-mono text-xs">{o.order_code}</TableCell>
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3 font-mono text-xs">{o.order_code}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             {o.items?.length
                                                 ? o.items.map((item) => (
                                                       <span key={item.order_item_id} className="block">
@@ -139,9 +141,9 @@ const OrdersPage = () => {
                                                   ))
                                                 : "—"}
                                         </TableCell>
-                                        <TableCell className="px-5 py-3">{o.receiver_name}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">{o.receiver_name}</TableCell>
                                         <TableCell className="max-w-[200px] truncate px-5 py-3 text-gray-400">{o.address}</TableCell>
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             {canChangeStatus(o.status) ? (
                                                 <select
                                                     value={o.status}
@@ -188,6 +190,7 @@ const OrdersPage = () => {
                                 )}
                             </TableBody>
                         </Table>
+                        </TableScrollContainer>
                         <Pagination currentPage={page} lastPage={lastPage} total={total} onPageChange={setPage} />
                     </>
                 )}

@@ -10,8 +10,10 @@ const navItems = [
     { path: "/orders", label: "Orders" },
 ];
 
+const MOBILE_MAX = 639;
+
 const AppSidebar = () => {
-    const { isOpen, toggleSidebar } = useSidebar();
+    const { isOpen, closeSidebar } = useSidebar();
     const { user, logout } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
@@ -40,11 +42,12 @@ const AppSidebar = () => {
             {isOpen && (
                 <div
                     className="fixed inset-0 z-30 bg-black/60 sm:hidden"
-                    onClick={toggleSidebar}
+                    onClick={closeSidebar}
+                    aria-hidden
                 />
             )}
             <aside
-                className={`fixed top-0 left-0 z-40 flex h-full w-64 flex-col bg-black border-r border-gray-900 transition-transform ${
+                className={`fixed top-0 left-0 z-40 flex h-full w-64 flex-col border-r border-gray-900 bg-black transition-transform duration-300 ease-in-out ${
                     isOpen ? "translate-x-0" : "-translate-x-full"
                 } sm:translate-x-0`}
             >
@@ -88,7 +91,8 @@ const AppSidebar = () => {
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => {
-                                    if (window.innerWidth < 640) toggleSidebar();
+                                    if (window.innerWidth <= MOBILE_MAX)
+                                        closeSidebar();
                                 }}
                                 className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                                     active
@@ -105,7 +109,10 @@ const AppSidebar = () => {
                 <div className="border-t border-gray-900 p-4">
                     <button
                         type="button"
-                        onClick={() => void handleLogout()}
+                        onClick={() => {
+                            if (window.innerWidth <= MOBILE_MAX) closeSidebar();
+                            void handleLogout();
+                        }}
                         className="w-full rounded-lg border border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-200 transition hover:bg-gray-900 hover:text-white"
                     >
                         Logout

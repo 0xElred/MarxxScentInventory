@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import PageHeader from "../../components/layout/PageHeader";
+import TableScrollContainer from "../../components/layout/TableScrollContainer";
 import Pagination from "../../components/layout/Pagination";
 import DashboardService from "../../services/DashboardService";
 import type { ActivityLog, DashboardStats } from "../../interfaces/DashboardInterface";
@@ -112,17 +113,17 @@ const DashboardPage = () => {
                             </div>
                         ) : (
                             <>
-                                <div className="overflow-x-auto">
+                                <TableScrollContainer>
                                     <Table>
                                         <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                             <TableRow>
-                                                <TableCell isHeader className="px-5 py-3 text-left">
+                                                <TableCell isHeader className="whitespace-nowrap px-5 py-3 text-left">
                                                     User
                                                 </TableCell>
-                                                <TableCell isHeader className="px-5 py-3 text-left">
+                                                <TableCell isHeader className="whitespace-nowrap px-5 py-3 text-left">
                                                     Activity
                                                 </TableCell>
-                                                <TableCell isHeader className="px-5 py-3 text-left">
+                                                <TableCell isHeader className="whitespace-nowrap px-5 py-3 text-left">
                                                     When
                                                 </TableCell>
                                             </TableRow>
@@ -134,13 +135,13 @@ const DashboardPage = () => {
                                                         key={log.activity_log_id}
                                                         className="hover:bg-gray-900/50"
                                                     >
-                                                        <TableCell className="px-5 py-3">
+                                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                                             {log.user_name}
                                                         </TableCell>
-                                                        <TableCell className="px-5 py-3">
+                                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                                             {log.activity}
                                                         </TableCell>
-                                                        <TableCell className="px-5 py-3 text-gray-400">
+                                                        <TableCell className="whitespace-nowrap px-5 py-3 text-gray-400">
                                                             {log.time_ago ?? log.created_at}
                                                         </TableCell>
                                                     </TableRow>
@@ -157,7 +158,7 @@ const DashboardPage = () => {
                                             )}
                                         </TableBody>
                                     </Table>
-                                </div>
+                                </TableScrollContainer>
                                 <Pagination
                                     currentPage={logsPage}
                                     lastPage={logsLastPage}

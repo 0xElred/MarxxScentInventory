@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import PageHeader from "../../components/layout/PageHeader";
 import TableSearchBar from "../../components/layout/TableSearchBar";
+import TableScrollContainer from "../../components/layout/TableScrollContainer";
 import Pagination from "../../components/layout/Pagination";
 import ToastMessage from "../../components/ToastMessage/ToastMessage";
 import { useToastMessage } from "../../hooks/useToastMessage";
@@ -95,19 +96,20 @@ const UsersPage = () => {
                     <div className="flex justify-center py-16"><Spinner size="lg" /></div>
                 ) : (
                     <>
+                        <TableScrollContainer>
                         <Table>
                             <TableHeader className="border-b border-slate-700 bg-[#0f1f3d] text-left text-xs uppercase text-gray-400">
                                 <TableRow>
-                                    <TableCell isHeader className="px-5 py-3">Picture</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Name</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Role</TableCell>
-                                    <TableCell isHeader className="px-5 py-3">Actions</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Picture</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Name</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Role</TableCell>
+                                    <TableCell isHeader className="whitespace-nowrap px-5 py-3">Actions</TableCell>
                                 </TableRow>
                             </TableHeader>
                             <TableBody className="divide-y divide-slate-700 text-sm text-gray-200">
                                 {users.map((u) => (
                                     <TableRow key={u.user_id} className="hover:bg-slate-800/40">
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             {u.profile_picture ? (
                                                 <img src={u.profile_picture} alt={u.name} className="h-10 w-10 rounded-full object-cover" />
                                             ) : (
@@ -116,13 +118,13 @@ const UsersPage = () => {
                                                 </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="px-5 py-3 font-medium">{u.name}</TableCell>
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3 font-medium">{u.name}</TableCell>
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             <span className="rounded-full bg-blue-900/50 px-2.5 py-0.5 text-xs capitalize text-blue-300">
                                                 {u.role?.name ?? "—"}
                                             </span>
                                         </TableCell>
-                                        <TableCell className="px-5 py-3">
+                                        <TableCell className="whitespace-nowrap px-5 py-3">
                                             <button type="button" className="mr-4 text-gray-300 hover:text-white" onClick={() => setEditUser(u)}>Edit</button>
                                             <button type="button" className="text-red-400 hover:text-red-300" onClick={() => setDeleteUser(u)}>Delete</button>
                                         </TableCell>
@@ -135,6 +137,7 @@ const UsersPage = () => {
                                 )}
                             </TableBody>
                         </Table>
+                        </TableScrollContainer>
                         <Pagination currentPage={page} lastPage={lastPage} total={total} onPageChange={setPage} />
                     </>
                 )}
