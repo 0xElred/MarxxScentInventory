@@ -54,16 +54,45 @@ class OrderController extends Controller
 
     private function resolveOrderLines(array $items): array
     {
+        $productIds = collect($items)
+            ->pluck('product_id')
+            ->unique()
+            ->values();
+
+        $products = Product::whereIn('product_id', $productIds)
+            ->where('is_deleted', false)
+            ->get()
+            ->keyBy('product_id');
+
+        $requestedByKey = [];
+        $keyOrder = [];
+
+        foreach ($items as $item) {
+            $productId = (int) $item['product_id'];
+            $variant = $item['variant_type'];
+            $quantity = (int) $item['quantity'];
+            $product = $products->get($productId);
+
+            if (! $product) {
+                abort(422, "Product {$productId} is unavailable.");
+            }
+
+            $key = $productId . ':' . $variant;
+            if (! array_key_exists($key, $requestedByKey)) {
+                $requestedByKey[$key] = 0;
+                $keyOrder[] = $key;
+            }
+
+            $requestedByKey[$key] += $quantity;
+        }
+
         $lines = [];
         $total = 0;
 
-        foreach ($items as $item) {
-            $product = Product::where('product_id', $item['product_id'])
-                ->where('is_deleted', false)
-                ->firstOrFail();
-
-            $variant = $item['variant_type'];
-            $quantity = (int) $item['quantity'];
+        foreach ($keyOrder as $key) {
+            [$productId, $variant] = explode(':', $key, 2);
+            $product = $products->get((int) $productId);
+            $quantity = (int) $requestedByKey[$key];
             $available = $product->stockForVariant($variant);
 
             if ($quantity > $available) {
@@ -89,9 +118,25 @@ class OrderController extends Controller
     {
         $order->items()->delete();
 
-        foreach ($lines as $line) {
-            $order->items()->create($line);
+        if ($lines === []) {
+            return;
         }
+
+        $now = now();
+        $payload = [];
+        foreach ($lines as $line) {
+            $payload[] = [
+                'order_id' => $order->order_id,
+                'product_id' => $line['product_id'],
+                'variant_type' => $line['variant_type'],
+                'quantity' => $line['quantity'],
+                'unit_price' => $line['unit_price'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        DB::table('tbl_order_items')->insert($payload);
     }
 
     private function deductStockForOrder(Order $order): void
