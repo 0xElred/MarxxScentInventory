@@ -18,14 +18,6 @@ class OrderItem extends Model
         'unit_price',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'quantity' => 'integer',
-            'unit_price' => 'decimal:2',
-        ];
-    }
-
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class, 'order_id', 'order_id');

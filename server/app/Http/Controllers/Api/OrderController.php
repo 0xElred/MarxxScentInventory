@@ -13,6 +13,68 @@ use Illuminate\Validation\Rule;
 
 class OrderController extends Controller
 {
+    private function parseCsvList(string|int|float|null $value): array
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        return collect(explode(',', (string) $value))
+            ->map(fn ($part) => trim($part))
+            ->filter(fn ($part) => $part !== '')
+            ->values()
+            ->all();
+    }
+
+    private function parseOrderItemLines(Order $order): array
+    {
+        $row = $order->items()->first();
+        if (! $row) {
+            return [];
+        }
+
+        $productIds = $this->parseCsvList($row->product_id);
+        $variants = $this->parseCsvList($row->variant_type);
+        $quantities = $this->parseCsvList($row->quantity);
+        $unitPrices = $this->parseCsvList($row->unit_price);
+        $length = max(count($productIds), count($variants), count($quantities), count($unitPrices));
+
+        $lines = [];
+        for ($i = 0; $i < $length; $i++) {
+            $lines[] = [
+                'product_id' => (int) ($productIds[$i] ?? 0),
+                'variant_type' => (string) ($variants[$i] ?? Product::VARIANT_BOTTLE),
+                'quantity' => (int) ($quantities[$i] ?? 0),
+                'unit_price' => (float) ($unitPrices[$i] ?? 0),
+            ];
+        }
+
+        return $lines;
+    }
+
+    private function attachExpandedItems(Order $order): Order
+    {
+        $lines = $this->parseOrderItemLines($order);
+        $productIds = collect($lines)->pluck('product_id')->unique()->values();
+        $products = Product::whereIn('product_id', $productIds)
+            ->where('is_deleted', false)
+            ->get()
+            ->keyBy('product_id');
+
+        $expanded = collect($lines)->map(function (array $line) use ($products) {
+            return (object) [
+                'product_id' => (int) $line['product_id'],
+                'variant_type' => (string) $line['variant_type'],
+                'quantity' => (int) $line['quantity'],
+                'unit_price' => (float) $line['unit_price'],
+                'product' => $products->get((int) $line['product_id']),
+            ];
+        })->values();
+
+        $order->setRelation('items', $expanded);
+        return $order;
+    }
+
     private function generateOrderCode(): string
     {
         $datePrefix = Carbon::today()->format('Ymd');
@@ -122,21 +184,15 @@ class OrderController extends Controller
             return;
         }
 
-        $now = now();
-        $payload = [];
-        foreach ($lines as $line) {
-            $payload[] = [
-                'order_id' => $order->order_id,
-                'product_id' => $line['product_id'],
-                'variant_type' => $line['variant_type'],
-                'quantity' => $line['quantity'],
-                'unit_price' => $line['unit_price'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-
-        DB::table('tbl_order_items')->insert($payload);
+        DB::table('tbl_order_items')->insert([
+            'order_id' => $order->order_id,
+            'product_id' => implode(', ', array_map(fn ($line) => (string) $line['product_id'], $lines)),
+            'variant_type' => implode(', ', array_map(fn ($line) => (string) $line['variant_type'], $lines)),
+            'quantity' => implode(', ', array_map(fn ($line) => (string) $line['quantity'], $lines)),
+            'unit_price' => implode(', ', array_map(fn ($line) => number_format((float) $line['unit_price'], 2, '.', ''), $lines)),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function deductStockForOrder(Order $order): void
@@ -146,23 +202,22 @@ class OrderController extends Controller
         }
 
         DB::transaction(function () use ($order) {
-            $order->load('items.product');
-
-            foreach ($order->items as $item) {
-                $product = Product::where('product_id', $item->product_id)
+            foreach ($this->parseOrderItemLines($order) as $item) {
+                $product = Product::where('product_id', $item['product_id'])
                     ->lockForUpdate()
                     ->first();
 
-                $variant = $item->variant_type ?? Product::VARIANT_BOTTLE;
+                $variant = $item['variant_type'] ?? Product::VARIANT_BOTTLE;
                 $available = $product?->stockForVariant($variant) ?? 0;
+                $quantity = (int) ($item['quantity'] ?? 0);
 
-                if (! $product || $available < $item->quantity) {
+                if (! $product || $available < $quantity) {
                     $name = $product?->name ?? 'Product';
                     $label = $product?->variantLabel($variant) ?? 'stock';
                     abort(422, "Insufficient {$label} stock for {$name}. Available: {$available}");
                 }
 
-                $product->decrementVariantStock($variant, $item->quantity);
+                $product->decrementVariantStock($variant, $quantity);
             }
 
             $order->update(['stock_deducted' => true]);
@@ -176,13 +231,11 @@ class OrderController extends Controller
         }
 
         DB::transaction(function () use ($order) {
-            $order->load('items');
-
-            foreach ($order->items as $item) {
-                $variant = $item->variant_type ?? Product::VARIANT_BOTTLE;
-                Product::where('product_id', $item->product_id)
+            foreach ($this->parseOrderItemLines($order) as $item) {
+                $variant = $item['variant_type'] ?? Product::VARIANT_BOTTLE;
+                Product::where('product_id', $item['product_id'])
                     ->first()
-                    ?->incrementVariantStock($variant, $item->quantity);
+                    ?->incrementVariantStock($variant, (int) ($item['quantity'] ?? 0));
             }
 
             $order->update(['stock_deducted' => false]);
@@ -204,7 +257,7 @@ class OrderController extends Controller
         $status = $request->input('status');
         $search = $request->input('search');
 
-        $orders = Order::with(['items.product'])
+        $orders = Order::with(['items'])
             ->where('is_deleted', false)
             ->orderByDesc('order_id');
 
@@ -216,20 +269,16 @@ class OrderController extends Controller
             $orders->where(function ($q) use ($search) {
                 $q->where('order_code', 'like', "%{$search}%")
                     ->orWhere('receiver_name', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhereHas('items.product', function ($product) use ($search) {
-                        $product->where('name', 'like', "%{$search}%");
-                    });
+                    ->orWhere('address', 'like', "%{$search}%");
             });
         }
 
         $orders = $orders->paginate(5);
 
         $orders->getCollection()->transform(function ($order) {
-            $order->total_amount = $order->items->sum(
-                fn ($item) => $item->product
-                    ? $item->product->unitPriceForVariant($item->variant_type ?? Product::VARIANT_BOTTLE) * $item->quantity
-                    : (float) $item->unit_price * $item->quantity
+            $order = $this->attachExpandedItems($order);
+            $order->total_amount = collect($order->items)->sum(
+                fn ($item) => (float) ($item->unit_price ?? 0) * (int) ($item->quantity ?? 0)
             );
 
             return $order;
@@ -281,7 +330,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Order Successfully Saved',
-            'order' => $order->load(['items.product']),
+            'order' => $this->attachExpandedItems($order->refresh()),
         ], 200);
     }
 
@@ -313,7 +362,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Order Successfully Updated',
-            'order' => $order->load(['items.product']),
+            'order' => $this->attachExpandedItems($order->refresh()),
         ], 200);
     }
 
@@ -344,7 +393,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Order status updated.',
-            'order' => $order->load(['items.product']),
+            'order' => $this->attachExpandedItems($order->refresh()),
         ], 200);
     }
 
